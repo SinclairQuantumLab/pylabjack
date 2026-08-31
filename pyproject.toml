@@ -1,0 +1,34 @@
+[project]
+name = "pylabjack"
+version = "0.1.0"
+description = "A Pythonic wrapper around LabJack's LJM Python API"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "labjack-ljm~=1.23.0",
+    "numpy>=1.26.4,<2.5",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1,<10",
+]
+notebook = [
+    "ipykernel",
+    "matplotlib",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.0,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+source-include = ["docs/**"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers -m 'not hardware and not native_ljm'"
+testpaths = ["tests"]
+markers = [
+    "hardware: requires an explicitly selected physical LabJack device",
+    "native_ljm: requires the separately installed native LJM library",
+]

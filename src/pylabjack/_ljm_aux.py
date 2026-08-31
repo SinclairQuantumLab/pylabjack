@@ -1,24 +1,29 @@
 # Created by Joonseok Hur
-# Custom functionsc for labJack control
+# Custom functions for LabJack control
 
 import numpy as np
 from enum import Enum
 
 from labjack import ljm
 
-from typing import TypedDict, Union
-
+from typing import Sequence, TypedDict, Union
 
 # Enums
 
 
 class LabJackDeviceTypeEnum(Enum):
-    """Enum for LabJack device type.
-    Refer to https://support.labjack.com/docs/gethandleinfo-ljm-user-s-guide
+    """Known LabJack device families across supported vendor APIs.
+
+    Membership identifies a device family; it does not imply that every
+    pylabjack operation or connection backend supports that family.
     """
+    U12 = 1
+    U3 = 3
     T4 = ljm.constants.dtT4  # 4
+    U6 = 6
     T7 = ljm.constants.dtT7  # 7
     T8 = ljm.constants.dtT8  # 8
+    UE9 = 9
     DIGIT = ljm.constants.dtDIGIT  # 200
 
 
@@ -83,6 +88,11 @@ class LabJackRegisterConfigurationError(LabJackError):
     """Exception for errors while configuring LabJack device register"""
     pass
 
+
+class LabJackReadWriteError(LabJackError):
+    """Exception for on-demand numeric register read/write failures."""
+    pass
+
 # stream read
 # class LabJackStreamReadConfigurationError(LabJackError):
 #     """Exception for errors while configuring labjack or library for stream read"""
@@ -96,23 +106,51 @@ class LabJackStreamReadError(LabJackError):
 
 
 # data handling
-def LabJackaData2chData(aData, numAddresses, scanRate=np.nan):
+def LabJackaData2chData(
+    aData,
+    numAddresses,
+    scanRate=np.nan,
+    *,
+    sample_times_s: Sequence[float] | np.ndarray | None = None,
+):
     """sort interleaved data from streaming (refer to https://support.labjack.com/docs/estreamread-ljm-user-s-guide)
     to the 2D array indexed by channel and time order
 
     Args:
         aData (list or numpy.array): interleaved data returned from streaming
         numAddresses (int): number of input channels streamed
-        scanRate (float, optional): scan rate to determine measured time of data. Defaults to np.nan.
+        scanRate (float, optional): Legacy fallback using the actual scan rate.
+            When no sample-time array is supplied, every element in a scan
+            receives the same nominal sample time. Defaults to np.nan.
+        sample_times_s: Sample times aligned one-for-one with ``aData``. When
+            given, these values are split alongside the interleaved data.
 
     Returns:
-        list: list of dict for data per hannel
+        list: list of dict for data per channel
             dict:
                 'V' (np.array of float): measured voltage
                 'idx' (np.array of int): index of data in the input streamed data "aData"
                 't' (np.array of float, optional): time elapsed for the measurement.
     """
-    aData = np.array(aData)
+    aData = np.asarray(aData)
+    if aData.ndim != 1:
+        raise ValueError("aData must be a flat, one-dimensional stream array.")
+    if isinstance(numAddresses, bool) or not isinstance(numAddresses, (int, np.integer)):
+        raise ValueError("numAddresses must be a positive integer.")
+    numAddresses = int(numAddresses)
+    if numAddresses <= 0:
+        raise ValueError("numAddresses must be a positive integer.")
+
+    sample_times = None
+    if sample_times_s is not None:
+        sample_times = np.asarray(sample_times_s, dtype=float)
+        if sample_times.ndim != 1 or sample_times.size != aData.size:
+            raise ValueError("sample_times_s must be one-dimensional and match aData length.")
+    elif scanRate is not None and np.isfinite(scanRate):
+        scan_rate = float(scanRate)
+        if scan_rate <= 0.0:
+            raise ValueError("scanRate must be greater than zero.")
+        sample_times = (np.arange(aData.size) // numAddresses) / scan_rate
 
     # chData = [aData[idx::numAddresses] for idx in range(numAddresses)]
     chData = [{} for _ in range(numAddresses)]
@@ -122,8 +160,8 @@ def LabJackaData2chData(aData, numAddresses, scanRate=np.nan):
         ichs = idxs[i::numAddresses]
         chData[i]['idx'] = ichs
         chData[i]['V'] = np.array(aData[ichs])
-        if scanRate is not np.nan:
-            chData[i]['t'] = ichs/scanRate
+        if sample_times is not None:
+            chData[i]['t'] = sample_times[ichs]
 
     return chData
 
