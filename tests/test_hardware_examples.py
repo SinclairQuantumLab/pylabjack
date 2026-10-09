@@ -6,7 +6,7 @@ import re
 _REPOSITORY_ROOT = Path(__file__).parents[1]
 _FACADE_SOURCE = _REPOSITORY_ROOT / "src" / "pylabjack" / "labjack_device.py"
 _STREAM_SOURCE = _REPOSITORY_ROOT / "src" / "pylabjack" / "_stream.py"
-_HARDWARE_NOTEBOOK = _REPOSITORY_ROOT / "test_labjack_device.ipynb"
+_HARDWARE_NOTEBOOK = _REPOSITORY_ROOT / "test_labjack_device.ipynb.template"
 
 
 def test_module_hardware_example_uses_direct_positional_arguments():

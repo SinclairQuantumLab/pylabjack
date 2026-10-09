@@ -6,6 +6,8 @@
    "source": [
     "## Hardware test input template\n",
     "\n",
+    "Copy `test_labjack_device.ipynb.template` to `test_labjack_device.ipynb` before editing or running it. The working notebook is ignored by Git. If it already exists, keep that file rather than overwriting its inputs or outputs.\n",
+    "\n",
     "Replace every all-capital placeholder before running this notebook. Values are passed directly to the project enums and LJM so malformed inputs retain their native errors.\n",
     "\n",
     "- `<DEVICE_TYPE>`: a `LabJackDeviceTypeEnum` member name\n",
