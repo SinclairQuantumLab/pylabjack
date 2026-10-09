@@ -20,7 +20,9 @@
    "cell_type": "markdown",
    "metadata": {},
    "source": [
-    "## Connection"
+    "## Connection\n",
+    "\n",
+    "The connection stays open across cells. Call `lj_device.close()` when finished; the registered `atexit` callback also attempts to close it on normal Python process exit. Closing the notebook tab or interrupting a cell does not invoke that callback."
    ]
   },
   {
@@ -29,7 +31,9 @@
    "metadata": {},
    "outputs": [],
    "source": [
+    "import atexit\n",
     "import numpy as np\n",
+    "from matplotlib import pyplot as plt\n",
     "\n",
     "from pylabjack import (\n",
     "    LabJackConnectionTypeEnum,\n",
@@ -37,16 +41,120 @@
     "    LabJackDeviceTypeEnum,\n",
     ")\n",
     "\n",
-    "DEVICE_TYPE = \"<DEVICE_TYPE>\"\n",
-    "CONNECTION_TYPE = \"<CONNECTION_TYPE>\"\n",
+    "DEVICE_TYPE = LabJackDeviceTypeEnum[\"<DEVICE_TYPE>\"]\n",
+    "CONNECTION_TYPE = LabJackConnectionTypeEnum[\"<CONNECTION_TYPE>\"]\n",
     "DEVICE_IDENTIFIER = \"<DEVICE_IDENTIFIER>\"\n",
-    "INPUT_CHANNELS = [\"<AIN_CHANNEL_1>\", \"<AIN_CHANNEL_2>\"]\n",
     "\n",
     "lj_device = LabJackDevice(\n",
-    "    device_type=LabJackDeviceTypeEnum[DEVICE_TYPE],\n",
-    "    connection_type=LabJackConnectionTypeEnum[CONNECTION_TYPE],\n",
+    "    device_type=DEVICE_TYPE,\n",
+    "    connection_type=CONNECTION_TYPE,\n",
     "    device_identifier=DEVICE_IDENTIFIER,\n",
-    ")"
+    ")\n",
+    "\n",
+    "atexit.register(lj_device.close)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## On-demand read and write\n",
+    "\n",
+    "These examples use the connection opened above and return a `ReadWrite` operation object. Select scalar numeric registers supported by your device.\n",
+    "\n",
+    "### Single read\n",
+    "\n",
+    "Replace `<READ_REGISTER>` with one readable register or channel name. `.value` gives the single read result."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "READ_REGISTER = \"<READ_REGISTER>\"\n",
+    "\n",
+    "single_read = lj_device.read(READ_REGISTER)\n",
+    "print(type(single_read))\n",
+    "print(single_read)\n",
+    "print(single_read.value)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Consecutive readings:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "read_num = 10\n",
+    "reads = np.full(read_num, np.nan)\n",
+    "for i in range(read_num):\n",
+    "    single_read = lj_device.read(READ_REGISTER)\n",
+    "    reads[i] = single_read.value\n",
+    "\n",
+    "print(reads)\n",
+    "\n",
+    "fig, ax = plt.subplots(figsize=(10, 4))\n",
+    "ax.plot(reads)\n",
+    "ax.set_xlabel(\"Index\")\n",
+    "ax.set_ylabel(f\"Readings (V)\")\n",
+    "ax.set_title(f\"Readings from {READ_REGISTER}\")\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Consecutive multi-register readings and plot.\n",
+    "READ_CHANNELS = [\"AIN0\", \"AIN1\", \"AIN2\"]\n",
+    "read_num = 10\n",
+    "multi_reads = np.full((read_num, len(READ_CHANNELS)), np.nan)\n",
+    "for i in range(read_num):\n",
+    "    multi_read = lj_device.read(READ_CHANNELS)\n",
+    "    multi_reads[i, :] = multi_read.values\n",
+    "\n",
+    "fig, ax = plt.subplots(figsize=(10, 4))\n",
+    "for channel, values in zip(READ_CHANNELS, multi_reads.T):\n",
+    "    ax.plot(values, label=channel, alpha=0.5)\n",
+    "ax.set_xlabel(\"Index\")\n",
+    "ax.set_ylabel(\"Readings (V)\")\n",
+    "ax.set_title(f\"Readings from {', '.join(READ_CHANNELS)}\")\n",
+    "ax.legend()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Single write\n",
+    "\n",
+    "Replace `<WRITE_REGISTER>` and `<WRITE_VALUE>` with a writable register and a finite numeric value appropriate for your electrical setup. Running this cell changes that register. `.written_values` contains the requested write value, not a readback."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "WRITE_REGISTER = \"<WRITE_REGISTER>\"\n",
+    "WRITE_VALUE = float(\"<WRITE_VALUE>\")\n",
+    "\n",
+    "single_write = lj_device.write(WRITE_REGISTER, WRITE_VALUE)\n",
+    "print(single_write)\n",
+    "print(single_write.written_values)"
    ]
   },
   {
@@ -69,6 +177,8 @@
    "metadata": {},
    "outputs": [],
    "source": [
+    "INPUT_CHANNELS = [\"<AIN_CHANNEL_1>\", \"<AIN_CHANNEL_2>\"]\n",
+    "\n",
     "stream = lj_device.stream(\n",
     "    scan_rate_Hz=25e3,\n",
     "    duration_s=10,\n",

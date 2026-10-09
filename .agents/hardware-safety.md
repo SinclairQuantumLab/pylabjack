@@ -22,11 +22,22 @@ If any missing item could change the target device or electrical behavior, stop 
 Checked-in hardware examples must not contain a usable device identifier. The
 facade and stream modules take only the three device-selection values
 positionally, and
-`test_labjack_device.ipynb` uses all-capital placeholders such as
+`test_labjack_device.ipynb.template` uses all-capital placeholders such as
 `<DEVICE_IDENTIFIER>`. Supplying those values makes a path executable; it does
 not itself authorize an agent to run it. The stream module's fixed acquisition
 settings are illustrative defaults, not authorization or proof that those
 channels, rates, ranges, and register writes are safe for a selected device.
+
+The template is copied to the Git-ignored `test_labjack_device.ipynb` for local
+use. Preserve an existing working copy and its outputs; only the template is
+maintained in Git. Copying the template does not execute any hardware cells.
+
+The notebook registers `lj_device.close` with `atexit` after a successful
+connection as a fallback for normal Python process exit. Explicit close and
+operation-owned stream cleanup remain necessary: the callback does not run
+on cell interruption or notebook-tab closure and is not guaranteed on forced
+kernel termination. It does not resolve the known stream completion or worker
+cleanup issues.
 
 ## Before access
 
