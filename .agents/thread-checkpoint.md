@@ -1,6 +1,6 @@
 # Current development-thread checkpoint
 
-Last updated: 2026-08-30
+Last updated: 2026-10-09
 
 This file is the rolling handoff for the long-running `developing pylabjack`
 thread. It exists because the Codex desktop client has rendered incomplete
@@ -9,6 +9,135 @@ the implementation and the topic-specific documents indexed by
 `.agents/README.md`.
 
 ## Resume here
+
+The uv environment/refreshed lockfile, notebook template policy, notebook
+examples/exit cleanup, and README are now separate local `develop` commits
+(2026-10-09). This handoff records the associated agent guidance and validation.
+The local notebook and its outputs are preserved. The user's latest ignore
+rule is `test_*.ipynb`; the regenerated lockfile also updates notebook/development
+dependencies within the existing declared ranges. Runtime dependency
+declarations and Python support are unchanged. No push or merge into `main`
+was performed. Validation remains static/diff-only; no tests or hardware runs.
+
+Both notebooks now import `atexit` and register the bound `lj_device.close`
+method immediately after successful connection (2026-10-09). This is a
+normal-Python-exit fallback; existing explicit close remains. Notebook-tab
+closure, cell interruption, and forced termination are not covered, and known
+stream completion/cleanup issues remain open. Existing local device values
+and saved outputs are preserved. Validation is static only; no tests or
+hardware execution.
+
+Also synchronized the latest local plot edits into the template: 10-by-4
+figures, multi-channel alpha 0.5, a title derived from `READ_CHANNELS`, removal
+of the multi-read array print and the empty code cell. Local output is retained.
+
+Added one consecutive multi-register read/plot cell after the local single-read
+examples in both notebooks (2026-10-09): ten ordered `read()` calls for the
+user-selected AIN0/AIN1/AIN2, plotted against reading index with one legend
+entry per channel. Also synchronized the user's pyplot import, operation-type
+print, and consecutive single-register read/plot cells into the template.
+Existing local cells and outputs are preserved; template device/register/write
+inputs retain placeholders and all outputs/counts remain empty. Only static
+syntax/preservation review and diff hygiene; no tests or hardware execution.
+
+`INPUT_CHANNELS` was moved from connection to the stream execution cell in
+both notebooks (2026-10-09). Connection requires only device selection;
+operation-specific settings belong with the corresponding example. Local
+channel values and all other cells, metadata, and saved outputs were preserved.
+This is an example-only edit: static preservation review and diff hygiene,
+with no tests or notebook/hardware execution.
+
+The README's original high-level code-style emphasis and PEP 8 guidance were
+restored verbatim directly under `Developer's note` (2026-10-09). They are the
+introduction before its subsections; the detailed `Code style` subsection
+remains. Preserve this content when reorganizing documentation, as now recorded
+in `AGENTS.md` and the agent index. Documentation-only diff review and
+`git diff --check` are sufficient; no tests or hardware execution.
+
+Single-register read and write examples were added to both the template and
+the existing local notebook at the user's request (2026-10-09), immediately
+after connection and before streaming. They retain the operation objects and
+show `.value` for reads and `.written_values` for requested writes, explicitly
+not readback. Register names and the numeric write value require placeholder
+replacement. Existing local cells, device selection, and saved outputs are
+preserved; neither notebook is executed. No library behavior changed.
+
+The user requested ongoing notebook-to-template maintenance (2026-10-09).
+At each development task, inspect the ignored local notebook's code and
+Markdown and propagate reusable edits to the tracked template, preserving
+template setup instructions and hardware placeholders. Never copy local
+device values, saved output, execution counts, or private metadata, and leave
+the local working copy untouched. This policy is task-time review, not a
+background watcher. The current connection-cell edit now assigns enum objects
+to configuration variables and passes them directly to `LabJackDevice` in
+the template as well. Validation is limited to static review and diff hygiene;
+no notebook execution, tests, or hardware access is needed.
+
+Routine uv commands are now plain `uv sync`, `uv lock`, and `uv run`
+(2026-10-09). Both `dev` and `notebook` are configured as default uv groups:
+one `uv sync` prepares pytest, Jupyter kernel support, and plotting as well as
+the library. The expected initial workflow uses the notebook, so do not
+require a separate `--group notebook` command. Keep Python
+support, dependency groups/ranges, build metadata, the development interpreter,
+the generated lockfile, and setup documentation consistent. Current Python
+3.11 selection, project version, runtime requirements, and dependency groups
+were compared with lock metadata and agree. Historical command records remain
+unchanged. No dependency upgrade or support-range change was requested.
+Plain `uv lock` and `uv sync` succeeded without changing `uv.lock`, using the
+existing writable temporary cache. Diff checks passed; no tests or builds ran.
+
+After adding `notebook` to the default groups, `uv lock` still succeeds with
+no lockfile change. The updated `uv sync` selected the notebook dependencies;
+downloads succeeded outside the network-restricted sandbox, but installation
+stopped on access denied while replacing `.venv` package metadata. Do not claim
+the local notebook environment is installed. No environment repair, pytest,
+or standalone package build was attempted.
+
+The README is now organized for users (2026-10-09): installation, connection,
+register operations, streaming/results, notebook use, provenance, and support
+limits. Contributor setup, tests/builds, implementation guidance, module demos,
+and code style are subsections under `Developer's note`. Keep this audience
+boundary in future edits; it is recorded in `AGENTS.md` and the agent index.
+Existing operation examples and comments were retained. No library behavior
+changed; this documentation-only task uses diff review and `git diff --check`,
+with no tests, builds, or hardware execution.
+
+The first development task adopts the notebook convention confirmed in
+`SinclairQuantumLab/py-siglent-spd3000` on 2026-10-09: commit
+`test_labjack_device.ipynb.template`, copy it to the ignored local
+`test_labjack_device.ipynb`, and preserve existing local inputs and outputs.
+The current user-edited ignore rule covers `test_*.ipynb` working copies;
+`*.ipynb.template` files remain eligible for Git tracking.
+The original local file is retained unchanged; the template adds only copy
+instructions. README, agent context, safety/workflow guidance, and the existing
+static test path are synchronized. Validation is limited to diff review and
+Git ignore verification; no tests, build, notebook, or hardware execution.
+No library behavior has changed and no next feature has been selected.
+
+The user has set a lightweight validation policy (2026-10-09): simple tasks
+may skip tests; behavior changes should use only useful focused checks; creating
+or running comprehensive tests requires explicit user approval after explaining
+the reason, scope, and expected overhead. The full pytest suite is not an
+automatic step, including during repository orientation. This decision is
+recorded in `AGENTS.md` and `workflows.md`, with the agent index and public
+testing guidance synchronized. This policy-only change was checked by diff
+review and `git diff --check`; no tests were added or run.
+
+The receiving thread has now reviewed the repository at the user's request to
+understand the project first. The starting worktree was clean at `b400a7b`.
+README, agent context, implementation, capability docs, and tests confirm the
+existing operation-object contracts and deferred features below. No next
+feature or redesign has been selected; await the user's next development task.
+No implementation or notebook changes were made during this orientation.
+
+Validation on 2026-10-09: locked environment sync succeeded using a writable
+temporary uv cache. The device-free suite passed all 122 tests on Python
+3.11.16 after running outside the sandbox's temporary-directory permission
+restriction, with pytest's cache provider disabled. Earlier sandboxed runs
+passed 113 tests but could not set up nine temporary-path fixtures.
+`git diff --check` passed. No build, native-LJM, or hardware check was run.
+
+### Previous transfer context (2026-08-30)
 
 The user ended the affected thread after another visible-history omission and
 requested a commit suitable for transfer to a new thread, agent, or computer.

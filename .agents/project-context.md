@@ -6,7 +6,7 @@ Last source review: 2026-08-30
 
 `pylabjack` is intended to make LabJack's low-level `labjack.ljm` wrapper more Pythonic. It is now an experimental uv library project with `pyproject.toml`, a committed `uv.lock`, an `uv_build` package, and basic device-free tests. Version 0.1.0 is buildable but not released; CI and a release process do not yet exist.
 
-The design described by the README is:
+The implementation pattern described under the README's `Developer's note` is:
 
 1. Represent each physical device with a `LabJackDevice` object.
 2. Put each substantial LabJack operation in its own protected module, implemented by an operation/result class.
@@ -96,9 +96,9 @@ with stream-like precision.
 | `docs/stream-settling-advice.md` | T7 settling-advisory contract, exact table coverage, message semantics, and source links | Public explanation of an internal preflight mechanism; not a circuit-validation promise. |
 | `docs/stream-capabilities.md` | Canonical stream capability/status ledger across LJM primitives, device families, channels, modes, timing, results, and validation | Separates vendor support, plan-only syntax, calculation-only timing, implemented execution, and hardware validation. It must remain synchronized with `_stream.py`, tests, safety guidance, and known issues. |
 | `docs/read-write.md` | Public on-demand scalar numeric read/write input, result, timing, failure, and support contract | Documents one ordered `eNames()` backend and clearly defers array/string/byte/address variants and hardware validation. |
-| `test_labjack_device.ipynb` | User-owned manual hardware test template | Not an automated test. It uses canonical package imports, unified `stream()`, and all-capital placeholders for device/channel inputs; do not execute it automatically. |
+| `test_labjack_device.ipynb.template` | Tracked manual hardware test/demo template | Copy to the Git-ignored, user-owned `test_labjack_device.ipynb`; preserve an existing copy and its outputs. Uses canonical package imports, single-register `read()`/`write()` examples before unified `stream()`, and all-capital hardware placeholders including the write value. Not an automated test; static example checks read the template. |
 | `ljm_startup_configs.json` | Vendor-derived LJM 1.2100 startup configuration reference | The Python code does not load it, and uv distributions intentionally exclude it. Leading `//` comments mean it is not strict JSON; preserve the vendor format until its role is deliberately changed. |
-| `README.md` | Project intent, uv setup, style, and public usage examples | Hardware examples remain opt-in and are not smoke tests. |
+| `README.md` | User-facing installation, connection, operations/results, notebook use, provenance, and support limits | Contributor setup, tests/builds, implementation guidance, module demos, and code style are subsections under `Developer's note`. Hardware examples remain opt-in and are not smoke tests. |
 | `.gitignore` | Generated/editor/environment exclusions | It is a merged generic template; broad and conflicting rules are tracked as maintenance debt. |
 
 ## Component and data flow
@@ -292,7 +292,15 @@ The canonical import path is now:
 from pylabjack import LabJackDevice, LabJackDeviceTypeEnum, ReadWrite, Stream
 ```
 
-Modules use relative internal imports, and `tests/test_package.py` verifies the installed package in Python isolated mode. `test_labjack_device.ipynb` uses explicit `pylabjack` and NumPy imports and requires the user to replace all-capital placeholders before its hardware cells are run. Do not add root compatibility shims or execute the notebook as automated validation.
+Modules use relative internal imports, and `tests/test_package.py` verifies the installed package in Python isolated mode. `test_labjack_device.ipynb.template` uses explicit `pylabjack` and NumPy imports. Users copy it to the Git-ignored `test_labjack_device.ipynb` and replace all-capital placeholders before running hardware cells. Preserve existing working copies and outputs. Do not add root compatibility shims or execute the notebook as automated validation.
+
+During development tasks, review the local notebook's code and Markdown and propagate reusable user changes to the template, following the notebook policy in `workflows.md`. The connection example assigns device and connection enum objects to configuration variables and passes those objects directly to `LabJackDevice`; local hardware values remain placeholders in the tracked template.
+
+Notebook configuration belongs with the operation that uses it: the connection cell selects only the device and connection, and `INPUT_CHANNELS` is defined in the stream example immediately before `stream()`.
+
+After successful construction, the notebook registers the bound `lj_device.close` method with `atexit` for best-effort cleanup at normal Python process exit. Explicit close remains the normal lifecycle contract; closing a notebook tab, interrupting a cell, or forcibly terminating a kernel is not covered by that callback. The callback holds the specific device object, even if the notebook variable is later rebound.
+
+The read examples also include the user's consecutive single-register reading/plot cells and a consecutive multi-register cell for the explicitly requested `AIN0`, `AIN1`, and `AIN2`. The latter calls `read()` with the ordered name list ten times and plots each `.values` column against reading index with a channel legend. This is command-response acquisition without controlled spacing or simultaneous-read claims; it has not been executed by an agent on hardware.
 
 Sample-time reconstruction is not a standalone public API. The acquisition-
 schedule types and reconstruction function live in the protected
@@ -319,10 +327,16 @@ acquisition schedules independently.
 
 ## External requirements observed in source
 
+Routine setup uses plain `uv sync` and `uv lock`. Python support, dependency
+ranges, and groups are declared in `pyproject.toml`; `.python-version` selects
+a compatible development interpreter and `uv.lock` is generated from the
+project declarations. Update these and setup documentation together when
+requirements change; see `workflows.md` for the maintenance contract.
+
 - Python 3.11 (the declared project range is `>=3.11,<3.12`).
 - `labjack-ljm` 1.23.x, imported as `labjack.ljm`, plus the separately installed native LJM runtime for native calls.
 - NumPy `>=1.26.4,<2.5` for streamed data storage and processing.
-- Matplotlib and IPython kernel support only through the optional `notebook` dependency group.
+- Matplotlib and IPython kernel support through the `notebook` dependency group. Both `dev` and `notebook` are default uv groups, so plain `uv sync` includes them for the expected notebook workflow; they remain separate from the installed library's runtime dependencies.
 - Git is optional and used only for checkout provenance; its absence does not block package import, connection, or operations.
 - A supported LabJack device and connection for integration testing.
 

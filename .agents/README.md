@@ -10,7 +10,7 @@ Current baseline: uv library project, Python 3.11, `src/pylabjack` package layou
 
 - `project-context.md` — purpose, repository map, component ownership, lifecycle, and data flow.
 - `thread-checkpoint.md` — rolling resume point and recovered decision timeline for the active long-running development thread.
-- `workflows.md` — official uv commands, safe validation ladder, notebook policy, and remaining test/release requirements.
+- `workflows.md` — official uv commands, proportional validation and comprehensive-test approval policy, notebook policy, and remaining test/release requirements.
 - `hardware-safety.md` — authorization boundary and the checklist for real LabJack access.
 - `known-issues.md` — confirmed source-level defects, risks needing runtime confirmation, and missing infrastructure.
 - `thread-history-incident.md` — evidence and mitigations for the 2026-08-30 Codex desktop history-rendering incident; this is tooling context, not a pylabjack defect.
@@ -18,6 +18,7 @@ Current baseline: uv library project, Python 3.11, `src/pylabjack` package layou
 
 ## Maintenance policy
 
+- Keep testing lightweight and proportional to the task. Simple changes may skip tests; focused checks should answer a concrete uncertainty. Obtain explicit user approval before creating or running comprehensive tests, including the full pytest suite or extensive new test infrastructure. Follow `AGENTS.md` and `workflows.md`; do not treat the validation layers as a mandatory checklist.
 - Repository continuity comes first. Treat the existing design philosophy, vocabulary, types, module boundaries, and semantics as constraints to understand and preserve before proposing a new abstraction.
 - Search the implementation and its call sites before adding a type, enum, helper, or naming scheme. Reuse or extend the repository's established concept; do not create a parallel taxonomy for local convenience.
 - Keep resource ownership explicit: the object that owns a resource provides its deterministic cleanup contract, while nested operation objects clean up only resources they start and never close a longer-lived owner implicitly.
@@ -27,13 +28,16 @@ Current baseline: uv library project, Python 3.11, `src/pylabjack` package layou
 - Keep `thread-checkpoint.md` short enough to read at every resume. Update the immediate next action and newly confirmed decisions, then move stable detail into the appropriate topic document instead of letting the checkpoint become a second project specification.
 - If rendered conversation history is incomplete, recover from the local append-only session record with `export-codex-thread.ps1`; do not commit the raw log or paste system/developer/tool records into this knowledge base.
 - Preserve user-authored comments and example flow. Public documentation, docstrings, comments, and demos describe how the current software behaves for a user; development history and agent reasoning belong in `AGENTS.md` or this knowledge base.
+- During development tasks, review the ignored local notebook for reusable user code and Markdown edits and synchronize them into the tracked template under `workflows.md`'s notebook policy. Preserve the working copy, its outputs, and template hardware placeholders.
 - When a user correction overturns an assumption, audit source, tests, README, and `.agents/` for consequences and remove the inaccurate account in the same change.
 - Prefer stable references to a file and symbol over line numbers that will drift.
 - Add an observation date when a fact depends on the local tool environment or external hardware.
 - When resolving an issue, record the validating test or hardware procedure before removing it from `known-issues.md`.
 - Update the repository map when files or responsibilities move, and update workflows when commands or dependencies become official.
+- Use plain uv commands for routine work; keep `pyproject.toml`, `.python-version`, generated `uv.lock`, and setup instructions consistent. Follow the configuration-integrity policy in `AGENTS.md` and `workflows.md`.
 - Do not store credentials, usable device identifiers, serial numbers, private paths, or raw measurement data here.
 - Do not duplicate the full README. Public installation and usage belong in `README.md`; implementation context and agent guardrails belong here.
+- Keep the README's main flow user-facing. Contributor setup, tests/builds, implementation guidance, module demos, and code style belong under its `Developer's note` section. Retain the high-level code-style emphasis and PEP 8 guidance directly under that heading when reorganizing the document.
 - Preserve undecided questions as open issues. Add an ADR under `.agents/decisions/` only when the project actually makes a durable architectural decision.
 - In Markdown, write inline math as `$...$` and display math as `$$...$$`; do not use backslash-delimited TeX math markers.
 

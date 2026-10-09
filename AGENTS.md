@@ -26,16 +26,18 @@ Preserving this repository's established design philosophy, style, vocabulary, a
 - For this long-running development thread, keep `.agents/thread-checkpoint.md` as a concise rolling handoff: update its resume point after a material decision, before a potentially interruptible long operation, and at handoff. It supplements, but never replaces, the topic-specific source of truth in `project-context.md`, `known-issues.md`, and the implementation.
 - If the visible Codex transcript appears incomplete, stop relying on the rendered history. Verify the append-only local session record with `.agents/export-codex-thread.ps1`, reconcile it with the worktree and topic-specific documents, and update the checkpoint before resuming implementation. Never copy raw session logs into the repository.
 - Preserve user-authored comments and example structure unless the requested behavior requires changing them. README text, public docstrings, source comments, demos, and examples must explain the current software from a user's perspective; do not insert development history, agent rationale, conversational context, or internal ownership debates there. Record that maintainer context in `AGENTS.md` or `.agents/` instead.
+- Keep the README's main flow oriented to users: installation, connection, operations, results, notebook use, and support limits. Put contributor setup, tests/builds, implementation guidance, module demos, and code style in subsections under `Developer's note`. Preserve the high-level code-style emphasis and PEP 8 guidance as the introduction directly under that heading; reorganizing content is not permission to remove it.
 
 ## Current project status
 
 - This is an early uv-managed Python library around LabJack's `labjack.ljm` API. It is buildable as `pylabjack` version 0.1.0 but has not been released.
 - `pyproject.toml`, `uv.lock`, the `uv_build` backend, and a small device-free pytest suite now exist. There is still no CI, lint/type-check configuration, hardware integration suite, or release workflow.
 - The supported interpreter is Python 3.11, pinned for development by `.python-version`. Source syntax may parse on 3.10, but 3.10 is not part of the declared support range.
-- Runtime dependencies are `labjack-ljm` 1.23.x and NumPy 1.26.4 through 2.4.x. The native LJM runtime is a separate system prerequisite for LJM calls. Matplotlib and IPython kernel support are in the optional `notebook` dependency group.
+- Runtime dependencies are `labjack-ljm` 1.23.x and NumPy 1.26.4 through 2.4.x. The native LJM runtime is a separate system prerequisite for LJM calls. The `dev` and `notebook` groups are both default uv groups, so plain `uv sync` includes pytest, Matplotlib, and IPython kernel support for the expected notebook workflow.
 - The intended design is a `LabJackDevice` facade plus one internal operation module/class per LabJack feature. See `.agents/project-context.md`.
 - Implemented operations are unified `Stream` (currently all-AIN input execution) and scalar numeric `ReadWrite` backed by one ordered `ljm.eNames()` call; `LabJackDevice.read()`, `write()`, and `read_write()` all return `ReadWrite`.
-- The canonical public import is `from pylabjack import ...`; internal imports are package-relative. The user-owned `test_labjack_device.ipynb` uses the canonical API and all-capital hardware-input placeholders.
+- The canonical public import is `from pylabjack import ...`; internal imports are package-relative. The tracked `test_labjack_device.ipynb.template` uses the canonical API and all-capital hardware-input placeholders. Copy it to the Git-ignored, user-owned `test_labjack_device.ipynb` for local use; preserve any existing working copy and its outputs.
+- During each development task, if the local notebook exists, compare its current code and Markdown with the tracked template and carry reusable user edits into the template. Do not rely on Git status to reveal ignored notebook changes. Preserve template-specific setup instructions and hardware-input placeholders; never copy local device values, outputs, execution counts, or private metadata. Leave the working notebook untouched. This is a task-time review, not a background watcher.
 - Known source-level defects and unresolved design decisions are tracked in `.agents/known-issues.md`. Do not present affected behavior as verified until the corresponding issue is resolved and tested.
 
 ## Architecture and coding rules
@@ -53,7 +55,7 @@ Preserving this repository's established design philosophy, style, vocabulary, a
 - Keep stream-action, hardware-direction, and vendor-mechanism terminology distinct. The Pythonic public plan should describe per-entry actions as `read`/`write`; reserve `input`/`output` for physical capabilities or an actual configurable direction such as DIO; retain exact LabJack terms such as Stream-In, Stream-Out, `STREAM_OUT#`, and `eStreamRead()` when documenting or implementing the vendor mechanism. The current `inputs`/`outputs` and `mode`/`direction="in"|"out"` API is known pre-release vocabulary debt tracked as `STREAM-009`, not the target contract.
 - Keep the `_stream.py` hardware demo's device lifetime explicit with construction before `try` and `close()` in `finally`, rather than replacing it with a `with` block. This leaves the connection scope visible and lets a future asynchronous stream call remain inside the same cleanup boundary until it is awaited.
 - Preserve the invariant that one scan processes one event for every scan-list address. Distinguish `num_scan_addresses`, `num_input_addresses`, and `num_output_addresses`: output addresses count toward `scan_rate * num_scan_addresses` scheduling/data-rate limits but do not produce valid `eStreamRead()` input samples. For an all-input scan, `input_sample_rate = scan_rate * num_input_addresses`.
-- Use the actual scan rate returned by LJM for timing when that behavior is implemented. Keep units in names and test every seconds/milliseconds boundary.
+- Use the actual scan rate returned by LJM for timing when that behavior is implemented. Keep units in names; use focused checks for changed seconds/milliseconds conversions when needed under the validation policy below.
 - Keep stream schedule/time reconstruction internal to the stream operation. `_stream_sample_times.py` is intentionally not named for In or Out because it must evolve around the full ordered scan schedule; expose operation results, not the schedule resolver or its configuration types, as public API.
 - Periodic and aperiodic Stream-Out are deferred. Until implemented with fake-LJM framing tests, keep the current result contract all-AIN input-only, reject rather than partially accept output addresses, and do not claim output-only or combined support.
 - Treat the module docstring in `src/pylabjack/_stream.py` and `docs/stream-capabilities.md` as a synchronized stream-support ledger. Update both whenever an LJM primitive, device family, register/channel class, clock/trigger mode, input/output mode, timing rule, result contract, or validation level changes. Keep vendor capability, plan-only representation, calculation-only support, device-free execution tests, and physical hardware validation explicitly distinct.
@@ -80,15 +82,20 @@ The detailed runbook is `.agents/hardware-safety.md`.
 
 ## Validation and reporting
 
-- Start with `git diff --check` and a review of the exact diff.
-- Use the locked uv environment: `uv sync --locked`, then `uv run --locked --no-sync pytest`. The pytest configuration excludes both `native_ljm` and `hardware` markers by default.
-- Verify dependency edits with `uv lock --check` and package-layout or metadata edits with `uv build`.
+- Keep validation proportional to the change and its concrete uncertainty. Repository orientation, documentation, comments, and simple low-impact edits may skip test creation and execution; review the exact diff and use `git diff --check` for edits.
+- For behavior changes, choose the smallest focused check that resolves a meaningful uncertainty. Reuse existing tests where useful; do not require a new test for every change or build exhaustive fake-hardware scaffolding by default.
+- Before creating or running comprehensive tests, explain the concrete reason, proposed scope, and expected overhead, then obtain explicit user approval. This includes the full pytest suite, broad regression matrices, and extensive new test infrastructure. A prior explicit request covering that scope is sufficient; do not ask again.
+- Once the selected check gives sufficient evidence, stop. Do not broaden or repeat validation without a new failure, change, or unresolved concern; broadening to comprehensive tests still requires approval.
+- Use the project's uv environment with plain `uv sync`, `uv lock`, and `uv run` commands. Do not routinely add `--locked`, `--frozen`, or `--no-sync`, or require a separate notebook-group installation. Both `dev` and `notebook` are configured as default groups. Run `uv sync` only when the environment needs setup or synchronization. Focused tests use `uv run pytest <target>`; the full `uv run pytest` command remains subject to approval and excludes `native_ljm` and `hardware` markers by default.
+- Maintain configuration integrity at the source: `pyproject.toml` owns Python support, dependencies, groups, and build metadata; `.python-version` must select a compatible interpreter; `uv.lock` is generated by uv, never hand-edited. When dependency declarations change, run `uv lock`, review the resulting diff, and keep metadata, lockfile, and setup documentation synchronized in the same change. Do not widen support ranges or upgrade dependencies just to simplify a command.
+- Use a targeted package check or `uv build` when layout or metadata changes warrant it. Do not build for every public-code edit.
+- Do not turn an incidental test-environment or permissions problem into prolonged setup work. Report the limitation and continue the authorized development work where possible; request approval before substantial validation setup or comprehensive follow-up.
 - Do not claim native LJM, lint, type-check, or hardware success unless the relevant tool/runtime exists and that check was actually run.
 - Keep device-free, native-LJM, and opt-in hardware integration tests distinct. CI, when introduced, must run the first group by default and exclude the other two.
 - Report commands run, their results, and anything not run. A documentation-only or static check is not hardware validation.
 - Preserve the user's modified notebook and any other unrelated dirty files.
 
-See `.agents/workflows.md` for the current validation ladder.
+See `.agents/workflows.md` for proportional validation policy and available checks.
 
 ## Documentation maintenance matrix
 

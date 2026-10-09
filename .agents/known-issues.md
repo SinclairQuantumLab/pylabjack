@@ -48,6 +48,13 @@ Validation: device-free plan tests cover grouped and explicitly ordered forms, m
 
 Validation: device-free static tests parse the notebook JSON, verify both modules' direct device-selection `sys.argv` contracts and the stream demo's fixed acquisition values, reject legacy notebook imports, and scan the maintained examples for literal IPv4 addresses. The notebook and module demos were not executed; no native LJM or hardware access was used.
 
+Update 2026-10-09: the maintained notebook is now
+`test_labjack_device.ipynb.template`, following the template/ignored-working-copy
+convention confirmed in `SinclairQuantumLab/py-siglent-spd3000`. The local
+`test_labjack_device.ipynb` is preserved and excluded from Git. The existing
+static checks now read the template. Validation for this file-policy change
+is diff review and Git ignore verification; no pytest or hardware run.
+
 ### LIFE-001 — Deterministic device-handle ownership (resolved 2026-08-30)
 
 `LabJackDevice` is now the sole owner of its LJM handle. Construction opens once,
@@ -156,6 +163,7 @@ uv metadata, dependency locking, Python support, package builds, a basic test su
 
 ## Runtime questions to confirm during fixes
 
+- Local setup observation (2026-10-09): after enabling both default uv groups, `uv lock` succeeds unchanged, but `uv sync` cannot replace existing `.venv` package metadata because access is denied. Notebook dependencies downloaded successfully outside the network-restricted sandbox; installation remains incomplete. See `workflows.md`. No dependency or support-range change is needed to explain this environment failure.
 - Verify the datasheet-derived timing profiles and requested-versus-actual rate behavior on explicitly authorized hardware before treating them as hardware-tested rather than device-free contract tests.
 - Determine the exact stream-return length and backlog behavior for the final read before fixing truncation and reporting.
 - Verify trigger support, valid registers, rate limits, and safe defaults per model rather than extrapolating the current T7-oriented examples.
