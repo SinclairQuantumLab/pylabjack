@@ -1,3 +1,5 @@
+import asyncio
+
 import numpy as np
 import pytest
 
@@ -208,7 +210,10 @@ def test_invalid_profile_that_overlaps_next_scan_is_rejected():
         )
 
 
-def test_stream_uses_actual_rate_returned_by_estreamstart(monkeypatch):
+@pytest.mark.parametrize("running_loop", [False, True])
+def test_stream_uses_actual_rate_returned_by_estreamstart(
+    monkeypatch, running_loop
+):
     expected_provenance = object()
     expected_device_identity = object()
 
@@ -225,6 +230,7 @@ def test_stream_uses_actual_rate_returned_by_estreamstart(monkeypatch):
             return None
 
     requested_rates = []
+    stopped_handles = []
     monkeypatch.setattr(
         stream_module.ljm,
         "namesToAddresses",
@@ -241,15 +247,26 @@ def test_stream_uses_actual_rate_returned_by_estreamstart(monkeypatch):
         "eStreamRead",
         lambda handle: ([1.0, 10.0, 2.0, 20.0], 0, 0),
     )
-    monkeypatch.setattr(stream_module.ljm, "eStreamStop", lambda handle: None)
+    monkeypatch.setattr(stream_module.ljm, "eStreamStop", stopped_handles.append)
 
     plan = _normalize_stream_plan(
         scan_rate_Hz=1_000.0,
         duration_s=0.002,
         inputs={"channels": ["AIN0", "AIN1"], "scans_per_read": 2},
     )
-    stream = Stream(FakeDevice(), _plan=plan)
 
+    async def acquire_in_running_loop():
+        return Stream(FakeDevice(), _plan=plan)
+
+    stream = (
+        asyncio.run(acquire_in_running_loop())
+        if running_loop
+        else Stream(FakeDevice(), _plan=plan)
+    )
+
+    assert stopped_handles == [FakeDevice._handle]
+    np.testing.assert_array_equal(stream.records["AIN0"]["V"], [1.0, 2.0])
+    np.testing.assert_array_equal(stream.records["AIN1"]["V"], [10.0, 20.0])
     assert requested_rates == [1_000.0]
     assert stream.actual_scan_rate_Hz == 900.0
     assert stream.actual_sampling_rate_Hz == 1_800.0
@@ -269,6 +286,23 @@ def test_stream_uses_actual_rate_returned_by_estreamstart(monkeypatch):
         stream.interleaved_sample_times_s,
         [0.0, 15e-6, 1.0 / 900.0, 1.0 / 900.0 + 15e-6],
     )
+
+
+def test_stream_execute_propagates_failure_in_running_loop(monkeypatch):
+    failure = RuntimeError("acquisition failed")
+
+    def fail(self):
+        raise failure
+
+    monkeypatch.setattr(Stream, "_run", fail)
+
+    async def execute_in_running_loop():
+        stream = Stream.__new__(Stream)
+        with pytest.raises(RuntimeError) as caught:
+            stream._execute()
+        assert caught.value is failure
+
+    asyncio.run(execute_in_running_loop())
 
 
 def test_stream_emits_settling_advice_before_register_writes(

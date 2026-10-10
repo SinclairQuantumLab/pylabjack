@@ -74,6 +74,40 @@ demo uses a bounded context, the stream demo holds its connection through
 `try`/`finally`, and the notebook uses explicit `close()`. No native LJM or
 hardware access was used.
 
+### STREAM-001 — Synchronous completion in scripts and notebooks (resolved 2026-10-09)
+
+The user selected synchronous-only stream execution on 2026-10-09.
+`Stream._run()` is now a normal blocking method, and `_execute()` invokes it
+directly in scripts and notebooks. There is no event-loop dispatch or public
+async option. Successful construction returns assembled results; failures
+raised by acquisition reach the caller. Existing configuration/worker cleanup
+limitations remain tracked separately in `STREAM-004`.
+
+Observation 2026-10-09: the user's saved notebook stream-cell output contains
+`AttributeError: 'NoneType' object has no attribute 'values'` at
+`stream.records.values()`. This is consistent with the immediate return from
+the former existing-loop scheduling path before records were populated. The
+agent read the saved error and source only; it did not execute the notebook or
+access hardware. This observation does not establish whether the scheduled
+stream subsequently completed or encountered a separate error.
+
+Comparison with local `main`/`origin/main` at `91859cf`: the legacy
+`StreamIn._stream_in()` also schedules a coroutine without waiting when a loop
+is running. Its `threading.Event` is never waited on. That notebook starts
+acquisition in one cell and consumes results in the next; develop's notebook
+consumes them in the same cell. The scheduling defect predates develop, while
+the changed notebook flow exposes it immediately.
+
+Validation 2026-10-09: the existing fake-LJM acquisition test passed in both
+script and running-loop contexts, and direct failure propagation inside a loop
+also passed (3 selected cases; 17 deselected). The command was
+`uv run pytest tests/test_stream_sample_times.py -k
+'stream_uses_actual_rate_returned_by_estreamstart or
+stream_execute_propagates_failure_in_running_loop'`. Earlier attempts were
+blocked by the incomplete environment; after the user's repair, plain `uv sync`
+also succeeds. No full suite, native-LJM calls, or physical hardware execution
+was performed. Separate configuration/worker cleanup gaps remain open.
+
 ## Confirmed from source inspection
 
 ### RW-002 — Specialized register shapes and hardware validation are deferred
@@ -85,12 +119,6 @@ The implemented `ReadWrite` contract supports one finite numeric value per named
 Every `configure_register()` call injects `AIN_ALL_NEGATIVE_CH=GND` and `AIN_ALL_RANGE=10.0`. Trigger setup and any otherwise narrow register write can therefore change all analog-input settings. The string branch also calls `eWriteNameString()` without the device handle expected by the LJM API.
 
 Resolution needs explicit setup defaults separated from the generic writer plus call-signature tests for numeric and string values.
-
-### STREAM-001 — Running-event-loop completion is unreliable
-
-`Stream._run()` is declared async but performs blocking LJM calls and contains no effective await point. When a loop is already running, `_execute()` schedules a task without waiting; construction can return with `records is None`, and background task exceptions are not propagated.
-
-Resolution requires an explicit synchronous/async API contract and tests in both execution contexts.
 
 ### STREAM-002 — Requested duration and returned data length can diverge
 
@@ -173,6 +201,5 @@ uv metadata, dependency locking, Python support, package builds, a basic test su
 
 - Whether and when to expand support beyond the currently declared Python 3.11 and `labjack-ljm` 1.23.x range.
 - Supported LabJack device and firmware matrix.
-- Synchronous-only API versus separate synchronous and asynchronous stream APIs.
 - Whether `ljm_startup_configs.json` remains a versioned vendor reference or becomes an operational project configuration.
 - Release target/version policy and the boundary between mock, native-runtime, and supervised hardware integration tests.

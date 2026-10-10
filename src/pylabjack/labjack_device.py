@@ -497,7 +497,11 @@ class LabJackDevice:
             trigger_edge: LabJackTriggerEdgeEnum = LabJackTriggerEdgeEnum.Rising,
             trigger_timeout_s: float | None = None,
         ) -> 'Stream':
-        """Configure and run one unified LabJack stream session.
+        """Configure and synchronously run one unified LabJack stream session.
+
+        Block until acquisition and result assembly finish, including in a
+        notebook or an already-running event loop. Return the completed
+        operation, or propagate its execution error to the caller.
 
         Use either grouped ``inputs``/``outputs`` mappings or an ordered
         ``channels`` sequence with ``input_config``/``output_config``. Both

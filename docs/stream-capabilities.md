@@ -1,6 +1,6 @@
 # Stream capability and implementation status
 
-Last source review: 2026-08-30
+Last source review: 2026-10-09
 
 This is the maintained ledger for LabJack stream functionality that the
 repository implements, represents, or has deliberately deferred. It separates
@@ -34,6 +34,11 @@ hardware matrix do not yet exist. Accordingly, even those three models are
 Finishing a stream does not disconnect its `LabJackDevice`. Callers can perform
 later operations through the same connection and close it explicitly when it
 is no longer needed.
+
+Execution is synchronous in scripts and notebooks, including callers with an
+already-running event loop. Successful calls return after acquisition, stream
+stop, worker completion, and result assembly; execution errors propagate to
+the caller. Asynchronous execution is not exposed or implemented.
 
 `LabJackDevice.stream()` accepts grouped `inputs`/`outputs` or one explicitly
 ordered `channels` sequence. `_normalize_stream_plan()` preserves scan-list
@@ -133,7 +138,8 @@ executable boundary.
 | `-9999.0` skipped-sample preservation | **Implemented** as `NaN` with the timeline position retained. |
 | T7 conditional settling message before register writes | **Implemented**; see [T7 stream settling advice](stream-settling-advice.md). |
 | Exact requested-duration trimming | **Partial**; a final overfull read is not trimmed (`STREAM-002`). |
-| Completion inside an already-running event loop | **Partial/unreliable**; the constructor can return before results exist (`STREAM-001`). |
+| Synchronous completion in scripts and an already-running event loop | **Implemented**; acquisition runs directly and successful calls return with assembled results, blocking the caller thread including in Jupyter. Three focused fake-LJM cases passed on 2026-10-09: completion in both contexts and direct failure propagation in a running loop (`STREAM-001`, resolved). No physical hardware validation. |
+| Asynchronous stream execution | **Not implemented**; no public async method or scheduling option is exposed. |
 | Deterministic stop/worker/error cleanup | **Partial** (`STREAM-004`). |
 | Distinct result entries for repeated channel names | **Not implemented** (`STREAM-008`). |
 | Native LJM and physical-hardware validation | **Not performed** in this repository. Default tests are device-free. |

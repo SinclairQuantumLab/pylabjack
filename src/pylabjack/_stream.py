@@ -19,6 +19,13 @@ there is no ``stream_in()`` method, ``StreamIn`` alias, or direct aggregate-rate
 compatibility constructor. Each result also retains immutable device-identity
 and package/Git provenance snapshots captured by its owning device.
 
+Execution is synchronous in scripts and notebooks, including callers with a
+running event loop. A successful call returns after acquisition, stream stop,
+worker completion, and result assembly; execution errors propagate to the
+caller. Asynchronous stream execution is not implemented or exposed.
+Focused fake-LJM checks cover completed results in both caller contexts and
+failure propagation inside a running event loop; no hardware validation is implied.
+
 See ``docs/stream-capabilities.md`` for the maintained LJM-function,
 device-family, channel, timing, result, and validation status ledger. Current
 execution claims are device-free unless that ledger explicitly says otherwise.
@@ -48,7 +55,6 @@ from ._stream_sample_times import (
     resolve_acquisition_schedule,
 )
 
-import asyncio
 import threading
 import queue
 
@@ -645,6 +651,7 @@ class Stream:
     execution is limited to internally clocked, all-AIN input plans with one
     common range and GND negative input. See ``docs/stream-capabilities.md`` for
     the exact support boundary and known lifecycle/result limitations.
+    Construction blocks until acquisition completes and results are assembled.
     """
 
     # Read-only properties
@@ -924,7 +931,7 @@ class Stream:
                                   ) -> None:
         """
         stack the return of each eStreamRead() to this instance.
-        Intended to be asyncio.queue'd in _stream() method.
+        Called by the internal queue worker during synchronous acquisition.
         """
         a_data = np.array(ret[0]) # stream data read
         device_scan_backlog = ret[1]
@@ -962,7 +969,7 @@ class Stream:
             self._stack_stream_reads(ir, timestamp_read_return, ret)
             self._queue.task_done()
 
-    async def _run(self) -> None:
+    def _run(self) -> None:
         """
         Perform the stream reading and store the result in this instance.
 
@@ -1110,25 +1117,11 @@ class Stream:
 
         # store result to this instance
         self._records = records
-        # self._records_ready.set()  # signal that records are ready
 
 
     def _execute(self) -> None:
-        """Run from a script or schedule on an already-running event loop.
-
-        The existing-loop completion contract remains unresolved; see
-        ``STREAM-001`` in the repository's known issues.
-        """
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            # No running loop: script mode
-            asyncio.run(self._run())
-        else:
-            # Running loop (Jupyter, async app): schedule without waiting.
-            loop.call_soon_threadsafe(
-                lambda: asyncio.ensure_future(self._run())
-            )
+        """Wait for acquisition and result assembly in every caller context."""
+        self._run()
 
     def __str__(self) -> str:
         msg = "LabJack stream:"

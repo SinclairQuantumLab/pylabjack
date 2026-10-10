@@ -36,8 +36,8 @@ The notebook registers `lj_device.close` with `atexit` after a successful
 connection as a fallback for normal Python process exit. Explicit close and
 operation-owned stream cleanup remain necessary: the callback does not run
 on cell interruption or notebook-tab closure and is not guaranteed on forced
-kernel termination. It does not resolve the known stream completion or worker
-cleanup issues.
+kernel termination. It does not resolve the known stream worker cleanup
+issues.
 
 ## Before access
 
@@ -54,7 +54,7 @@ cleanup issues.
 
 - Never substitute one model for another because an example happens to connect.
 - Do not use indefinite triggered waits by default.
-- Keep blocking I/O off an application event loop unless the API explicitly provides and tests that contract.
+- `stream()` blocks the caller thread until acquisition and result assembly finish, including in an application or notebook event loop. Do not assume an existing loop makes acquisition asynchronous. A retained async placeholder must raise `NotImplementedError` before accessing hardware.
 - Track whether open/start/write operations actually succeeded so cleanup occurs exactly once.
 - Preserve the original exception if stopping or closing also fails.
 - Keep ownership boundaries intact: `LabJackDevice` closes its handle; an

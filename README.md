@@ -124,6 +124,11 @@ operations until `close()` is called. Input and future Stream-Out are handled
 as parts of one device stream session rather than as independently started
 streams.
 
+`stream()` is synchronous: it blocks while acquiring data and returns the
+operation with its results ready, or raises an execution error. This behavior
+is the same in scripts and Jupyter notebooks, including when an event loop is
+already running. Asynchronous stream execution is not available.
+
 ```python
 # Grouped input configuration
 stream = lj_device.stream(
@@ -222,8 +227,8 @@ non-AIN inputs, differential inputs, mixed ranges, and external clocks are
 not implemented. The current path is designed around T4/T7/T8; physical
 hardware and firmware compatibility have not yet been validated.
 
-Triggered-stream support, completion in an already-running event loop, cleanup
-after stream failures, exact final-block length, and distinct results for
+Triggered-stream support, cleanup after stream failures, exact final-block
+length, and distinct results for
 repeated channel names remain incomplete. See the
 [stream capability ledger](docs/stream-capabilities.md) for the complete
 support boundaries and validation status.
