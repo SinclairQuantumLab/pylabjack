@@ -10,14 +10,58 @@ the implementation and the topic-specific documents indexed by
 
 ## Resume here
 
+Latest handoff (2026-10-09): plain `uv sync` now succeeds (41 installed
+packages checked), and the three focused fake-LJM synchronous-stream cases
+passed; `STREAM-001` is resolved for device-free completion/propagation.
+No full suite or agent hardware run. The user subsequently authorized
+committing the current work, merging develop into main, and pushing both
+branches to origin. The remote had no additional changes at the pre-merge
+fetch; main can fast-forward to develop. Publication scope is the Git branches,
+not a package-index release. Resume development on develop after integration;
+no next feature has been selected. Existing stream cleanup/length limitations
+remain documented.
+
+Reviewed the current ignored notebook against the template: synchronized
+connection-object prints and the combined acquisition/plot cell, including
+stream figure size, axis labels, title, legend, and removal of the separate
+plot cell/immediate device close. All 15 cells now align; reusable source
+matches except the template introduction and hardware placeholders. The
+working notebook was not written; template outputs/counts remain empty.
+
+
+The user chose synchronous-only stream execution (2026-10-09). `_run` is now
+a normal method and `_execute` calls it directly; successful calls return with
+assembled results in scripts and notebooks. There are no public async methods
+or retained async method placeholders. Any future retained placeholder must
+raise `NotImplementedError` before device access. Stream cleanup defects remain
+separate. README, source/facade docstrings, capability ledger, project context,
+safety guidance, and agent rules describe the new contract. The local notebook
+remains untouched; its user-edited stream duration of 2 seconds is synchronized
+to the template.
+
+The user's saved error was `AttributeError` at `stream.records.values()` while
+records were `None`. Local `main`/`origin/main` at `91859cf` already had the
+non-waiting coroutine scheduling path: its Event was never waited on. The old
+notebook consumed results in a separate cell; develop does so in the acquisition
+cell, exposing the timing defect. Keep that distinction in future explanations.
+
+Focused fake-LJM tests cover completion in both contexts and direct failure
+propagation. Initial attempts were blocked by environment permissions and the
+missing editable installation. Those three cases subsequently passed after the
+user repaired the environment, as recorded above. Source and synchronized
+support documentation are committed as `333cc15`; the latest notebook template
+is committed separately as `318f156`. Validation/workflow records are a third
+commit in this integration.
+
 The uv environment/refreshed lockfile, notebook template policy, notebook
 examples/exit cleanup, and README are now separate local `develop` commits
 (2026-10-09). This handoff records the associated agent guidance and validation.
 The local notebook and its outputs are preserved. The user's latest ignore
 rule is `test_*.ipynb`; the regenerated lockfile also updates notebook/development
 dependencies within the existing declared ranges. Runtime dependency
-declarations and Python support are unchanged. No push or merge into `main`
-was performed. Validation remains static/diff-only; no tests or hardware runs.
+declarations and Python support are unchanged. At that earlier handoff no
+push or merge into `main` had been performed; validation then was
+static/diff-only, without tests or hardware runs.
 
 Both notebooks now import `atexit` and register the bound `lj_device.close`
 method immediately after successful connection (2026-10-09). This is a

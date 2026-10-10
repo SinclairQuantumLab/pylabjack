@@ -33,7 +33,26 @@ Local observation (2026-10-09): plain `uv lock` accepts both default groups
 without changing the dependency resolution. Plain `uv sync` selects the
 notebook dependencies, but local installation stopped on access denied while
 replacing `.venv` package metadata after downloads succeeded. Environment
-installation is incomplete; this is not evidence of a dependency mismatch.
+installation was incomplete at that point; this was not evidence of a dependency mismatch.
+
+Later observation (2026-10-09), during the focused synchronous-stream check:
+the default cache was inaccessible, and retrying with the temporary cache
+first hit sandbox network restrictions. An authorized network retry downloaded
+the locked dependencies but failed to uninstall existing ipykernel metadata.
+Test collection through the existing project interpreter then failed because
+the editable `pylabjack` installation was unavailable. The three selected
+stream checks initially could not execute; setup repair was separate work.
+
+Current observation (2026-10-09): following the user's environment repair,
+plain `uv sync` succeeds without missing-`RECORD` or access-denied warnings
+(41 installed packages checked). The three selected fake-LJM synchronous
+stream cases passed with `uv run pytest tests/test_stream_sample_times.py -k
+'stream_uses_actual_rate_returned_by_estreamstart or
+stream_execute_propagates_failure_in_running_loop'`. No full suite or hardware
+execution was performed. If interrupted installation leaves an environment
+incomplete, prefer recreating the disposable `.venv` and plain `uv sync` over
+prolonged individual package repair. Shut down its notebook kernel first and
+keep source files and the working notebook intact.
 
 ## Configuration integrity
 
