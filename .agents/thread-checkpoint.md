@@ -10,13 +10,35 @@ the implementation and the topic-specific documents indexed by
 
 ## Resume here
 
-Latest handoff (2026-10-09): plain `uv sync` now succeeds (41 installed
+Latest handoff (2026-10-09): the user requested committing and pushing the
+current work on develop, split by task. Commit `5bfac78` removes automatic
+`print(self)` and surrounding blank lines after `LabJackDevice` initialization;
+README and project context document explicit `print(lj_device)`. Connection
+status messages and `__str__()` are unchanged.
+
+Automatic single-line DIO identification and boolean conversion are explicitly
+deferred in `known-issues.md` as `RW-003`. The candidate uses LJM name-to-address
+resolution for aliases and a single-line-state address classification, not
+storage type or value alone. Current read/write behavior is unchanged. Resume
+with the user's next task; this note is not authorization to implement RW-003.
+
+Local notebook/template reusable source still matches, excluding setup text
+and hardware-input placeholders; neither notebook was modified. Validation for
+these small changes is source/diff review and `git diff --check`; no tests,
+native-LJM calls, or hardware execution. Commit author identity is reused from
+the preceding repository commits through per-command Git configuration.
+
+The preceding integration completed: main and develop were pushed to origin at
+`f1b9ffd`, and the session now uses the repository under labjack-to-influxdb.
+
+
+Earlier integration (2026-10-09): plain `uv sync` now succeeds (41 installed
 packages checked), and the three focused fake-LJM synchronous-stream cases
 passed; `STREAM-001` is resolved for device-free completion/propagation.
 No full suite or agent hardware run. The user subsequently authorized
 committing the current work, merging develop into main, and pushing both
 branches to origin. The remote had no additional changes at the pre-merge
-fetch; main can fast-forward to develop. Publication scope is the Git branches,
+fetch; main was fast-forwarded to develop. Publication scope was the Git branches,
 not a package-index release. Resume development on develop after integration;
 no next feature has been selected. Existing stream cleanup/length limitations
 remain documented.

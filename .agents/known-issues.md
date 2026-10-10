@@ -114,6 +114,35 @@ was performed. Separate configuration/worker cleanup gaps remain open.
 
 The implemented `ReadWrite` contract supports one finite numeric value per named register. Consecutive numeric arrays, strings, byte arrays, and address/type access need explicit operation variants or extensions with unambiguous inputs, result alignment, register/model validation, and fake-LJM call-signature tests. These LJM families describe register shape or addressing rather than repeated time-spaced sampling and must not be presented as Stream substitutes. No native-LJM execution or physical device validation exists yet for the scalar backend.
 
+### RW-003 — Automatic single-line DIO identification and boolean results (deferred)
+
+User decision 2026-10-09: record this as future development; do not implement
+conversion yet. Current `ReadWrite` results remain floats, including digital
+states represented as `0.0`/`1.0`, and write normalization rejects booleans.
+
+A candidate design resolves register names through `ljm.nameToAddress()` or
+`namesToAddresses()` and classifies the resulting address as a single-line DIO
+state. LJM resolves alternate names using its local register map without device
+communication, so FIO/EIO/CIO/MIO and DIO aliases need no separate prefix rules.
+Static inspection of the installed vendor map (version `2024.04.18.A`) places
+these single-line states at addresses 2000-2022. Their storage type is `UINT16`,
+not a boolean type; storage type, a DIO tag, or a returned value of 0/1 alone is
+insufficient to establish boolean semantics. Bank state/direction bitmasks and
+extended-feature counters/frequencies must retain numeric results.
+
+Before implementation, confirm the classification boundary against the exact
+model and current vendor map; name resolution alone does not prove model
+support. Decide boolean write acceptance and the relationship between converted
+convenience/aligned results and raw numeric LJM frame values, preserving the
+operation object, command order, and duplicates. Use only focused device-free
+checks for aliases, single-line states, and numeric exclusions when this feature
+is authorized. No native LJM calls or hardware validation were performed for
+this investigation.
+
+References: [NameToAddress](https://support.labjack.com/docs/nametoaddress-ljm-user-s-guide),
+[LJM register-map constants](https://support.labjack.com/docs/ljm-modbus-errorcode-interpretation-constants),
+and [digital I/O](https://support.labjack.com/docs/13-0-digital-i-o-t-series-datasheet).
+
 ### REG-001 — Register writes include unrelated analog-input defaults
 
 Every `configure_register()` call injects `AIN_ALL_NEGATIVE_CH=GND` and `AIN_ALL_RANGE=10.0`. Trigger setup and any otherwise narrow register write can therefore change all analog-input settings. The string branch also calls `eWriteNameString()` without the device handle expected by the LJM API.
