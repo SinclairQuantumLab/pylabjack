@@ -51,6 +51,9 @@
     "    device_identifier=DEVICE_IDENTIFIER,\n",
     ")\n",
     "\n",
+    "print(type(lj_device))\n",
+    "print(lj_device)\n",
+    "\n",
     "atexit.register(lj_device.close)"
    ]
   },
@@ -181,7 +184,7 @@
     "\n",
     "stream = lj_device.stream(\n",
     "    scan_rate_Hz=25e3,\n",
-    "    duration_s=10,\n",
+    "    duration_s=2,\n",
     "    inputs={\"channels\": INPUT_CHANNELS},\n",
     ")\n",
     "\n",
@@ -189,23 +192,16 @@
     "print()\n",
     "total_nans = np.sum([np.isnan(value['V']).sum() for value in stream.records.values()])\n",
     "print(f\"Recounting skipped total samples = {total_nans}\")\n",
-    "lj_device.close()"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "metadata": {},
-   "outputs": [],
-   "source": [
-    "import matplotlib.pyplot as plt\n",
     "\n",
-    "fig, ax = plt.subplots()\n",
+    "fig, ax = plt.subplots(figsize=(10,4))\n",
     "n_skip_head = 100\n",
     "for channel, record in stream.records.items():\n",
     "    ax.plot(record[\"t\"][n_skip_head:], record[\"V\"][n_skip_head:], label=channel)\n",
-    "\n",
-    "    "
+    "ax.set_xlabel(\"Time [s]\")\n",
+    "ax.set_ylabel(\"Voltage [V]\")\n",
+    "ax.set_title(\"LabJack Stream Data\")\n",
+    "ax.legend()\n",
+    "plt.show()"
    ]
   },
   {
