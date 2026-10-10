@@ -136,9 +136,6 @@ class LabJackDevice:
         )
 
         self._connect()
-        print()
-        print(self)
-        print()
 
     def __enter__(self) -> "LabJackDevice":
         """Return this already-connected device for a bounded lifetime."""

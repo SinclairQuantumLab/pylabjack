@@ -34,6 +34,8 @@ and opens one connection. The connection remains available across any number
 of on-demand operations until `close()` is called. `close()` is idempotent,
 so calling it again after a successful close is harmless.
 
+Use `print(lj_device)` to display the device details explicitly.
+
 ```python
 from pylabjack import (
     LabJackConnectionTypeEnum,
